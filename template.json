@@ -157,7 +157,7 @@
               "Role": {"Fn::GetAtt" : ["LambdaExecutionRole", "Arn"]},
               "Runtime": "nodejs6.10",
               "MemorySize": 128,
-              "FunctionName": "broxy-code-copy",
+              "FunctionName": {"Ref": "AppCode"},
               "Handler": "index.handler",
               "Timeout": 30,
               "Environment" : {
