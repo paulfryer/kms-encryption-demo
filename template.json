@@ -167,7 +167,37 @@
                   }
               },
               "Code": {
-                "ZipFile": "var AWS=require('aws-sdk');exports.handler=(event,context,callback)=>{console.log(event);}"
+                "ZipFile": {"Fn:Join" : [
+                    "var AWS=require('aws-sdk');",
+                    "var kms = new AWS.KMS();",
+                    "var dynamodb = new AWS.DynamoDB();",
+                    "exports.handler=(event,context,callback)=>{",
+                    "     kms.encrypt({",
+                    "          KeyId: process.env.KmsKeyArn, ",
+                    "          Plaintext: JSON.stringify(event)",
+                    "         }).promise()",
+                    "     .then(function(data){",
+                    "        var item = {",
+                    "                PK: {",
+                    "                    S: process.env.AppCode",
+                    "                },",
+                    "                SK: {",
+                    "                    S: (new Date().getTime()).toString()",
+                    "                },",
+                    "                KmsKeyArn: {",
+                    "                    S: process.env.KmsKeyArn",
+                    "                },",
+                    "                EncryptedValue: {",
+                    "                    B: data.CiphertextBlob",
+                    "                }",
+                    "            }",
+                    "        return dynamodb.putItem({Item: item, TableName: process.env.AppCode}).promise();",
+                    "     })",
+                    "     .then(function(data){",
+                    "        console.log(data); ",
+                    "     });",
+                    "}"
+                ]}
               }
             }
           },
