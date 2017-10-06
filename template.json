@@ -167,7 +167,7 @@
                   }
               },
               "Code": {
-                "ZipFile": {"Fn:Join" : [
+                "ZipFile": {"Fn::Join" : [ "\n", [
                     "var AWS=require('aws-sdk');",
                     "var kms = new AWS.KMS();",
                     "var dynamodb = new AWS.DynamoDB();",
@@ -190,14 +190,14 @@
                     "                EncryptedValue: {",
                     "                    B: data.CiphertextBlob",
                     "                }",
-                    "            }",
+                    "            };",
                     "        return dynamodb.putItem({Item: item, TableName: process.env.AppCode}).promise();",
                     "     })",
                     "     .then(function(data){",
                     "        console.log(data); ",
                     "     });",
                     "}"
-                ]}
+                ]]}
               }
             }
           },
