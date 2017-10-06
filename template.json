@@ -13,9 +13,46 @@
         }
     },
     "Resources": {
+        "DynamoDBTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "TableName" : {"Ref" : "AppCode"},
+                "ProvisionedThroughput" : {
+                    "ReadCapacityUnits" : 1,
+                    "WriteCapacityUnits": 1
+                },
+                "AttributeDefinitions": [
+                    {
+                      "AttributeName": "PK",
+                      "AttributeType": "S"
+                    },
+                    {
+                      "AttributeName": "SK",
+                      "AttributeType": "S"
+                    }
+                  ],
+                  "KeySchema": [
+                    {
+                      "AttributeName": "PK",
+                      "KeyType": "HASH"
+                    },
+                    {
+                      "AttributeName": "SK",
+                      "KeyType": "RANGE"
+                    }
+                  ],
+                "Tags" : [
+                    {
+                        "Key" : "AppCode",
+                        "Value" : {"Ref" : "AppCode"}
+                    }]
+            }
+        },
         "KMSKey": {
+            "DependsOn" : ["LambdaExecutionRole"],
             "Type": "AWS::KMS::Key",
             "Properties": {
+                
                 "Enabled": true,
                 "Tags": [
                     {
@@ -111,14 +148,30 @@
                         }
                     ]
                 }
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "4d6683e8-4f8b-4f5d-a4b1-d16c3ec98ca2"
-                }
             }
         },
+        "LambdaFunction": {
+            "DependsOn" : ["KMSKey", "LambdaExecutionRole"],
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Role": {"Fn::GetAtt" : ["LambdaExecutionRole", "Arn"]},
+              "Runtime": "nodejs6.10",
+              "MemorySize": 128,
+              "FunctionName": "broxy-code-copy",
+              "Handler": "index.handler",
+              "Timeout": 30,
+              "Environment" : {
+                  "Variables" : {
+                      "KmsKeyArn" : {"Fn::GetAtt" : ["KMSKey", "Arn"]}
+                  }
+              },
+              "Code": {
+                "ZipFile": "var AWS=require('aws-sdk');exports.handler=(event,context,callback)=>{console.log(event);}"
+              }
+            }
+          },
         "LambdaExecutionRole": {
+            "DependsOn" : ["DynamoDBTable"],
             "Type": "AWS::IAM::Role",
             "Properties": {
                 "RoleName" : {"Ref": "LambdaRoleName"},
@@ -134,49 +187,30 @@
                 },
                 "Policies" : [
                     {
-                       "PolicyName": "CanWriteToDynamoAndUseKmsKey",
+                        "PolicyName" : "CanWirteToDynamoDBTable",
+                        "PolicyDocument" : {
+                            "Version" : "2012-10-17",
+                            "Statement" : [
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : "dynamodb:PutItem",
+                                    "Resource" : {"Fn::GetAtt" : ["DynamoDBTable", "Arn"]}
+                                }
+                            ]
+                        }
+                    },
+                    {
+                       "PolicyName": "CanUseKMS",
                        "PolicyDocument": {
                           "Version" : "2012-10-17",
                           "Statement": [ {
                              "Effect": "Allow",
-                             "Action": "*",
+                             "Action": "kms:*",
                              "Resource": "*"
                           } ]
                        }
                    }
                 ]
-            },
-            "Metadata": {
-                "AWS::CloudFormation::Designer": {
-                    "id": "c65e0f58-c881-46d8-bbbf-0100459762f8"
-                }
-            }
-        }
-    },
-    "Metadata": {
-        "AWS::CloudFormation::Designer": {
-            "4d6683e8-4f8b-4f5d-a4b1-d16c3ec98ca2": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 60,
-                    "y": 90
-                },
-                "z": 1,
-                "embeds": []
-            },
-            "c65e0f58-c881-46d8-bbbf-0100459762f8": {
-                "size": {
-                    "width": 60,
-                    "height": 60
-                },
-                "position": {
-                    "x": 218,
-                    "y": 218.1666717529297
-                },
-                "z": 0
             }
         }
     }
