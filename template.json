@@ -1,3 +1,183 @@
 {
-    
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "AppCode": {
+            "Type": "String",
+            "Description": "The application code to use for naming and tagging of the resources created.",
+            "Default": "kms-encryption-demo"
+        },
+        "LambdaRoleName": {
+            "Type": "String",
+            "Description": "The name of the role the Lambda function will use.",
+            "Default": "kms-encryption-demo"
+        }
+    },
+    "Resources": {
+        "KMSKey": {
+            "Type": "AWS::KMS::Key",
+            "Properties": {
+                "Enabled": true,
+                "Tags": [
+                    {
+                        "Key": "AppCode",
+                        "Value": {
+                            "Ref": "AppCode"
+                        }
+                    }
+                ],
+                "KeyPolicy": {
+                    "Id": {
+                        "Fn::Sub": "key-policy-${AppCode}"
+                    },
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Sid": "Enable IAM User Permissions",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": [
+                                    {
+                                        "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+                                    }
+                                ]
+                            },
+                            "Action": "kms:*",
+                            "Resource": "*"
+                        },
+                        {
+                            "Sid": "Allow access for Key Administrators",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": []
+                            },
+                            "Action": [
+                                "kms:Create*",
+                                "kms:Describe*",
+                                "kms:Enable*",
+                                "kms:List*",
+                                "kms:Put*",
+                                "kms:Update*",
+                                "kms:Revoke*",
+                                "kms:Disable*",
+                                "kms:Get*",
+                                "kms:Delete*",
+                                "kms:TagResource",
+                                "kms:UntagResource",
+                                "kms:ScheduleKeyDeletion",
+                                "kms:CancelKeyDeletion"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Sid": "Allow use of the key",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": [
+                                    {
+                                        "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}"
+                                    }
+                                ]
+                            },
+                            "Action": [
+                                "kms:Encrypt",
+                                "kms:Decrypt",
+                                "kms:ReEncrypt*",
+                                "kms:GenerateDataKey*",
+                                "kms:DescribeKey"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Sid": "Allow attachment of persistent resources",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "AWS": [
+                                    {
+                                        "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}"
+                                    }
+                                ]
+                            },
+                            "Action": [
+                                "kms:CreateGrant",
+                                "kms:ListGrants",
+                                "kms:RevokeGrant"
+                            ],
+                            "Resource": "*",
+                            "Condition": {
+                                "Bool": {
+                                    "kms:GrantIsForAWSResource": true
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "4d6683e8-4f8b-4f5d-a4b1-d16c3ec98ca2"
+                }
+            }
+        },
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "RoleName" : {"Ref": "LambdaRoleName"},
+                "AssumeRolePolicyDocument": {
+                   "Version" : "2012-10-17",
+                   "Statement": [ {
+                      "Effect": "Allow",
+                      "Principal": {
+                         "Service": [ "lambda.amazonaws.com" ]
+                      },
+                      "Action": [ "sts:AssumeRole" ]
+                   } ]
+                },
+                "Policies" : [
+                    {
+                       "PolicyName": "CanWriteToDynamoAndUseKmsKey",
+                       "PolicyDocument": {
+                          "Version" : "2012-10-17",
+                          "Statement": [ {
+                             "Effect": "Allow",
+                             "Action": "*",
+                             "Resource": "*"
+                          } ]
+                       }
+                   }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "c65e0f58-c881-46d8-bbbf-0100459762f8"
+                }
+            }
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "4d6683e8-4f8b-4f5d-a4b1-d16c3ec98ca2": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 60,
+                    "y": 90
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "c65e0f58-c881-46d8-bbbf-0100459762f8": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 218,
+                    "y": 218.1666717529297
+                },
+                "z": 0
+            }
+        }
+    }
 }
