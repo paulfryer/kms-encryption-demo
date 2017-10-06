@@ -162,7 +162,8 @@
               "Timeout": 30,
               "Environment" : {
                   "Variables" : {
-                      "KmsKeyArn" : {"Fn::GetAtt" : ["KMSKey", "Arn"]}
+                      "KmsKeyArn" : {"Fn::GetAtt" : ["KMSKey", "Arn"]},
+                      "AppCode" : {"Ref" : "AppCode"}
                   }
               },
               "Code": {
