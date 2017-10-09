@@ -176,7 +176,7 @@
                     "          KeyId: process.env.KmsKeyArn, ",
                     "          Plaintext: JSON.stringify(event), ",
                     "          EncryptionContext: { UserId: 'exampleUserId', AuthToken: 'exampleAuthToken' }",
-                    "         }).promise()",
+                    "         }).promise()", 
                     "     .then(function(data){",
                     "        var item = {",
                     "                PK: {",
