@@ -174,8 +174,8 @@
                     "exports.handler=(event,context,callback)=>{",
                     "     kms.encrypt({",
                     "          KeyId: process.env.KmsKeyArn, ",
-                    "          Plaintext: JSON.stringify(event),",
-                    "          EncryptionContext: { UserId: 'exampleUserId', AuthToken: 'exampleAuthToken' }"
+                    "          Plaintext: JSON.stringify(event),    ",
+                    "          EncryptionContext: { UserId: 'exampleUserId', AuthToken: 'exampleAuthToken' }",
                     "         }).promise()",
                     "     .then(function(data){",
                     "        var item = {",
