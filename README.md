@@ -1,4 +1,5 @@
-# kms-encryption-demo
+# KMS Encryption Demo
+
 A simple demo that shows how KMS can be used from Lambda to encrypt data before storing in a DynamoDB table.
 
 
