@@ -8,3 +8,5 @@ This repository consists of a single CloudFormation template that builds the fol
 2) A IAM Role for Lambda to use
 3) A DynamoDB table
 4) A Lambda function to demonstrate encryption with KMS and storage of encrypted value in DynamoDB.
+
+After you import the template into your account you can run the new Lambda function. Any JSON object you send into the function will be encrypted and stored in DynamoDB.
