@@ -1,249 +1,505 @@
 {
+
     "AWSTemplateFormatVersion": "2010-09-09",
+
     "Parameters": {
+
         "AppCode": {
+
             "Type": "String",
+
             "Description": "The application code to use for naming and tagging of the resources created.",
+
             "Default": "kms-encryption-demo"
+
         },
+
         "LambdaRoleName": {
+
             "Type": "String",
+
             "Description": "The name of the role the Lambda function will use.",
+
             "Default": "kms-encryption-demo"
+
         }
+
     },
+
     "Resources": {
+
         "DynamoDBTable": {
+
             "Type": "AWS::DynamoDB::Table",
+
             "Properties": {
+
                 "TableName" : {"Ref" : "AppCode"},
+
                 "ProvisionedThroughput" : {
+
                     "ReadCapacityUnits" : 1,
+
                     "WriteCapacityUnits": 1
+
                 },
+
                 "AttributeDefinitions": [
+
                     {
+
                       "AttributeName": "PK",
+
                       "AttributeType": "S"
+
                     },
+
                     {
+
                       "AttributeName": "SK",
+
                       "AttributeType": "S"
+
                     }
+
                   ],
+
                   "KeySchema": [
+
                     {
+
                       "AttributeName": "PK",
+
                       "KeyType": "HASH"
+
                     },
+
                     {
+
                       "AttributeName": "SK",
+
                       "KeyType": "RANGE"
+
                     }
+
                   ],
+
                 "Tags" : [
+
                     {
+
                         "Key" : "AppCode",
+
                         "Value" : {"Ref" : "AppCode"}
+
                     }]
+
             }
+
         },
+
         "KMSKey": {
+
             "DependsOn" : ["LambdaExecutionRole"],
+
             "Type": "AWS::KMS::Key",
+
             "Properties": {
+
                 
+
                 "Enabled": true,
+
                 "Tags": [
+
                     {
+
                         "Key": "AppCode",
+
                         "Value": {
+
                             "Ref": "AppCode"
+
                         }
+
                     }
+
                 ],
+
                 "KeyPolicy": {
+
                     "Id": {
+
                         "Fn::Sub": "key-policy-${AppCode}"
+
                     },
+
                     "Version": "2012-10-17",
+
                     "Statement": [
+
                         {
+
                             "Sid": "Enable IAM User Permissions",
+
                             "Effect": "Allow",
+
                             "Principal": {
+
                                 "AWS": [
+
                                     {
+
                                         "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+
                                     }
+
                                 ]
+
                             },
+
                             "Action": "kms:*",
+
                             "Resource": "*"
+
                         },
+
                         {
+
                             "Sid": "Allow access for Key Administrators",
+
                             "Effect": "Allow",
+
                             "Principal": {
-                                "AWS": []
+
+                                "AWS": [
+
+                                    {
+
+                                        "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:root"
+
+                                    }
+
+                                ]
+
                             },
+
                             "Action": [
+
                                 "kms:Create*",
+
                                 "kms:Describe*",
+
                                 "kms:Enable*",
+
                                 "kms:List*",
+
                                 "kms:Put*",
+
                                 "kms:Update*",
+
                                 "kms:Revoke*",
+
                                 "kms:Disable*",
+
                                 "kms:Get*",
+
                                 "kms:Delete*",
+
                                 "kms:TagResource",
+
                                 "kms:UntagResource",
+
                                 "kms:ScheduleKeyDeletion",
+
                                 "kms:CancelKeyDeletion"
+
                             ],
+
                             "Resource": "*"
+
                         },
+
                         {
+
                             "Sid": "Allow use of the key",
+
                             "Effect": "Allow",
+
                             "Principal": {
+
                                 "AWS": [
+
                                     {
+
                                         "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}"
+
                                     }
+
                                 ]
+
                             },
+
                             "Action": [
+
                                 "kms:Encrypt",
+
                                 "kms:Decrypt",
+
                                 "kms:ReEncrypt*",
+
                                 "kms:GenerateDataKey*",
+
                                 "kms:DescribeKey"
+
                             ],
+
                             "Resource": "*"
+
                         },
+
                         {
+
                             "Sid": "Allow attachment of persistent resources",
+
                             "Effect": "Allow",
+
                             "Principal": {
+
                                 "AWS": [
+
                                     {
+
                                         "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${LambdaRoleName}"
+
                                     }
+
                                 ]
+
                             },
+
                             "Action": [
+
                                 "kms:CreateGrant",
+
                                 "kms:ListGrants",
+
                                 "kms:RevokeGrant"
+
                             ],
+
                             "Resource": "*",
+
                             "Condition": {
+
                                 "Bool": {
+
                                     "kms:GrantIsForAWSResource": true
+
                                 }
+
                             }
+
                         }
+
                     ]
+
                 }
+
             }
+
         },
+
         "LambdaFunction": {
+
             "DependsOn" : ["KMSKey", "LambdaExecutionRole"],
+
             "Type": "AWS::Lambda::Function",
+
             "Properties": {
+
               "Role": {"Fn::GetAtt" : ["LambdaExecutionRole", "Arn"]},
+
               "Runtime": "nodejs6.10",
+
               "MemorySize": 128,
+
               "FunctionName": {"Ref": "AppCode"},
+
               "Handler": "index.handler",
+
               "Timeout": 30,
+
               "Environment" : {
+
                   "Variables" : {
+
                       "KmsKeyArn" : {"Fn::GetAtt" : ["KMSKey", "Arn"]},
+
                       "AppCode" : {"Ref" : "AppCode"}
+
                   }
+
               },
+
               "Code": {
+
                 "ZipFile": {"Fn::Join" : [ "\n", [
+
                     "var AWS=require('aws-sdk');",
+
                     "var kms = new AWS.KMS();",
+
                     "var dynamodb = new AWS.DynamoDB();",
+
                     "exports.handler=(event,context,callback)=>{",
+
                     "     kms.encrypt({",
+
                     "          KeyId: process.env.KmsKeyArn, ",
+
                     "          Plaintext: JSON.stringify(event), ",
+
                     "          EncryptionContext: { UserId: 'exampleUserId', AuthToken: 'exampleAuthToken' }",
+
                     "         }).promise()", 
+
                     "     .then(function(data){",
+
                     "        var item = {",
+
                     "                PK: {",
+
                     "                    S: process.env.AppCode",
+
                     "                },",
+
                     "                SK: {",
+
                     "                    S: (new Date().getTime()).toString()",
+
                     "                },",
+
                     "                KmsKeyArn: {",
+
                     "                    S: process.env.KmsKeyArn",
+
                     "                },",
+
                     "                EncryptedValue: {",
+
                     "                    B: data.CiphertextBlob",
+
                     "                }",
+
                     "            };",
+
                     "        return dynamodb.putItem({Item: item, TableName: process.env.AppCode}).promise();",
+
                     "     })",
+
                     "     .then(function(data){",
+
                     "        console.log(data); ",
+
                     "     });",
+
                     "};"
+
                 ]]}
+
               }
+
             }
+
           },
+
         "LambdaExecutionRole": {
+
             "DependsOn" : ["DynamoDBTable"],
+
             "Type": "AWS::IAM::Role",
+
             "Properties": {
+
                 "RoleName" : {"Ref": "LambdaRoleName"},
+
                 "AssumeRolePolicyDocument": {
+
                    "Version" : "2012-10-17",
+
                    "Statement": [ {
+
                       "Effect": "Allow",
+
                       "Principal": {
+
                          "Service": [ "lambda.amazonaws.com" ]
+
                       },
+
                       "Action": [ "sts:AssumeRole" ]
+
                    } ]
+
                 },
+
                 "Policies" : [
+
                     {
+
                         "PolicyName" : "CanWirteToDynamoDBTable",
+
                         "PolicyDocument" : {
+
                             "Version" : "2012-10-17",
+
                             "Statement" : [
+
                                 {
+
                                     "Effect" : "Allow",
+
                                     "Action" : "dynamodb:PutItem",
+
                                     "Resource" : {"Fn::GetAtt" : ["DynamoDBTable", "Arn"]}
+
                                 }
+
                             ]
+
                         }
+
                     },
+
                     {
+
                        "PolicyName": "CanUseKMS",
+
                        "PolicyDocument": {
+
                           "Version" : "2012-10-17",
+
                           "Statement": [ {
+
                              "Effect": "Allow",
+
                              "Action": "kms:*",
+
                              "Resource": "*"
+
                           } ]
+
                        }
+
                    }
+
                 ]
+
             }
+
         }
+
     }
+
 }
